@@ -28,41 +28,27 @@ Fue recompilada usando el siguiente comando: go build -o MDB.dll -buildmode=c-sh
 
 ```C
 #include <stdio.h>
-#include "STRING.h"
+#include "MDB.h"
 
 int main() {
-    // Conversión de tipos
-    char* numStr = "123";
-    int num = Atoi(numStr);
-    printf("Atoi: %s -> %d\n", numStr, num);
+    // Ejemplo de conexión y consulta
+    char* conexion = "root:123456@tcp(127.0.0.1:3306)/test";
+    char* query = "SELECT now();"; //Construcción de JSON desde Result
+    //char* query = "SELECT '{\"status\": \"OK\"}' AS JSON"; //Construcción de JSON desde Query
     
-    char* floatStr = "3.14159";
-    double pi = Atof(floatStr);
-    printf("Atof: %s -> %f\n", floatStr, pi);
+    SQLResult resultado = SQLrun(conexion, query, NULL, 0);
     
-    // Creación de strings
-    char* intStr = Itoa(42);
-    printf("Itoa: 42 -> %s\n", intStr);
+    if (resultado.is_error) {
+        printf("Error: %s\n", resultado.json);
+    } else if (resultado.is_empty) {
+        printf("Consulta ejecutada pero no retornó datos\n");
+        printf("JSON: %s\n", resultado.json); // Mostrará {"status":"OK"} o []
+    } else {
+        printf("Datos obtenidos:\n%s\n", resultado.json);
+    }
     
-    char* floatStr2 = Ftoa(3.14159, 2);
-    printf("Ftoa: 3.14159 (prec 2) -> %s\n", floatStr2);
-    
-    // Modificación de strings
-    char* original = "   Hola Mundo!   ";
-    char* trimmed = Trim(original);
-    printf("Trim: '%s' -> '%s'\n", original, trimmed);
-    
-    char* upper = ToUpperCase(trimmed);
-    char* lower = ToLowerCase(trimmed);
-    printf("ToUpperCase: '%s' -> '%s'\n", trimmed, upper);
-    printf("ToLowerCase: '%s' -> '%s'\n", trimmed, lower);
-    
-    // Limpieza de memoria
-    FreeString(intStr);
-    FreeString(floatStr2);
-    FreeString(trimmed);
-    FreeString(upper);
-    FreeString(lower);
+    // Liberar memoria
+    FreeSQLResult(resultado);
     
     return 0;
 }
