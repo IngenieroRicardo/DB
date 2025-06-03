@@ -1,8 +1,8 @@
-# MDB
+# DB
 
-Librería en C para realizar consultas a bases de datos MariaDB/MySQL y obtener los resultados en formato JSON.  
+Librería en C para realizar consultas a bases de datos MariaDB/MySQL, SQLServer, SQLite3 y PostgreSQL y obtener los resultados en formato JSON.  
 Esta librería está basada en el proyecto original: https://gitlab.com/RicardoValladares/api-mysql.git  
-Fue recompilada usando el siguiente comando: go build -o MDB.dll -buildmode=c-shared MDB.go
+Fue recompilada usando el siguiente comando: go build -o DB.dll -buildmode=c-shared DB.go
 
 ---
 
@@ -10,8 +10,8 @@ Fue recompilada usando el siguiente comando: go build -o MDB.dll -buildmode=c-sh
 
 | Linux | Windows |
 | --- | --- |
-| `wget https://raw.githubusercontent.com/IngenieroRicardo/MDB/refs/heads/main/MDB.so` | `Invoke-WebRequest https://raw.githubusercontent.com/IngenieroRicardo/MDB/refs/heads/main/MDB.dll -OutFile ./MDB.dll` |
-| `wget https://raw.githubusercontent.com/IngenieroRicardo/MDB/refs/heads/main/MDB.h` | `Invoke-WebRequest https://raw.githubusercontent.com/IngenieroRicardo/MDB/refs/heads/main/MDB.h -OutFile ./MDB.h` |
+| `wget https://raw.githubusercontent.com/IngenieroRicardo/DB/refs/heads/main/DB.so` | `Invoke-WebRequest https://raw.githubusercontent.com/IngenieroRicardo/DB/refs/heads/main/DB.dll -OutFile ./DB.dll` |
+| `wget https://raw.githubusercontent.com/IngenieroRicardo/DB/refs/heads/main/DB.h` | `Invoke-WebRequest https://raw.githubusercontent.com/IngenieroRicardo/DB/refs/heads/main/DB.h -OutFile ./DB.h` |
 
 ---
 
@@ -19,8 +19,8 @@ Fue recompilada usando el siguiente comando: go build -o MDB.dll -buildmode=c-sh
 
 | Linux | Windows |
 | --- | --- |
-| `gcc -o main.bin main.c ./MDB.so` | `gcc -o main.exe main.c ./MDB.dll` |
-| `x86_64-w64-mingw32-gcc -o main.exe main.c ./MDB.dll` |  |
+| `gcc -o main.bin main.c ./DB.so` | `gcc -o main.exe main.c ./DB.dll` |
+| `x86_64-w64-mingw32-gcc -o main.exe main.c ./DB.dll` |  |
 
 ---
 
@@ -28,15 +28,15 @@ Fue recompilada usando el siguiente comando: go build -o MDB.dll -buildmode=c-sh
 
 ```C
 #include <stdio.h>
-#include "MDB.h"
+#include "DB.h"
 
 int main() {
-    // Ejemplo de conexión y consulta
+    char* diver = "mysql";
     char* conexion = "root:123456@tcp(127.0.0.1:3306)/test";
     char* query = "SELECT now();"; //Construcción de JSON desde Result
     //char* query = "SELECT '{\"status\": \"OK\"}' AS JSON"; //Construcción de JSON desde Query
     
-    SQLResult resultado = SQLrun(conexion, query, NULL, 0);
+    SQLResult resultado = SQLrun(diver, conexion, query, NULL, 0);
     
     if (resultado.is_error) {
         printf("Error: %s\n", resultado.json);
@@ -60,10 +60,10 @@ int main() {
 
 ```C
 #include <stdio.h>
-#include "MDB.h"
+#include "DB.h"
 
 int main() {
-    // Ejemplo de conexión e inserción
+    char* diver = "mysql";
     char* conexion = "root:123456@tcp(127.0.0.1:3306)/test";
     
     // Ejemplo 1: Consulta INSERT con parámetros
@@ -82,7 +82,7 @@ int main() {
     }
     
     // Ejecutar la consulta INSERT
-    SQLResult resultado_insert = SQLrun(conexion, consulta_insert, ptr_argumentos_insert, 2);
+    SQLResult resultado_insert = SQLrun(diver, conexion, consulta_insert, ptr_argumentos_insert, 2);
     
     // Mostrar los resultados
     printf("Resultado del INSERT:\n");
