@@ -22,6 +22,7 @@ import (
     MDB "DB/MDB"
     PDB "DB/PDB"
     SDB "DB/SDB"
+    ODB "DB/ODB"
 )
 
 //export SQLrun
@@ -105,6 +106,12 @@ func SQLrun(driver *C.char, conexion *C.char, query *C.char, args **C.char, argC
         return result
     case "postgres":
         SQLResult := PDB.SqlRunInternal(goDriver, goConexion, goQuery, goArgs...)
+        result.json = C.CString(SQLResult.Json)
+        result.is_error = C.int(SQLResult.Is_error)
+        result.is_empty = C.int(SQLResult.Is_empty)
+        return result
+    case "oracle":
+        SQLResult := ODB.SqlRunInternal("godror", goConexion, goQuery, goArgs...)
         result.json = C.CString(SQLResult.Json)
         result.is_error = C.int(SQLResult.Is_error)
         result.is_empty = C.int(SQLResult.Is_empty)

@@ -1,6 +1,6 @@
 # DB
 
-Librería en C para realizar consultas a bases de datos MariaDB/MySQL, SQLServer, SQLite3 y PostgreSQL y obtener los resultados en formato JSON.  
+Librería en C para realizar consultas a bases de datos MariaDB/MySQL, SQLServer, SQLite3, PostgreSQL y Oracle para obtener los resultados en formato JSON.  
 Esta librería está basada en el proyecto original: https://gitlab.com/RicardoValladares/api-mysql.git  
 Fue recompilada usando el siguiente comando: go build -o DB.dll -buildmode=c-shared DB.go
 
@@ -33,8 +33,21 @@ Fue recompilada usando el siguiente comando: go build -o DB.dll -buildmode=c-sha
 int main() {
     char* diver = "sqlite3";
     char* conexion = "./sqlite3.db";
-    //char* query = "SELECT now();"; //Construcción de JSON desde Result
     char* query = "SELECT '{\"status\": \"OK\"}' AS JSON"; //Construcción de JSON desde Query
+
+    /*
+    char* diver = "postgres";
+    char* conexion = "user=postgres dbname=template1 password=123456 host=localhost sslmode=disable";
+
+    char* diver = "mysql";
+    char* conexion = "root:123456@tcp(127.0.0.1:3306)/test";
+
+    char* diver = "sqlserver";
+    char* conexion = "server=localhost;user id=SA;password=Prueba123456;database=master";
+    
+    char* diver = "oracle";
+    char* conexion = "user="system" password="Prueba123456" connectString="localhost:1521/XE";
+    */
     
     SQLResult resultado = SQLrun(diver, conexion, query, NULL, 0);
     
