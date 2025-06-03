@@ -10,8 +10,8 @@ Fue recompilada usando el siguiente comando: go build -o DB.dll -buildmode=c-sha
 
 | Linux | Windows |
 | --- | --- |
-| `wget https://raw.githubusercontent.com/IngenieroRicardo/DB/refs/heads/main/DB.so` | `Invoke-WebRequest https://raw.githubusercontent.com/IngenieroRicardo/DB/refs/heads/main/DB.dll -OutFile ./DB.dll` |
-| `wget https://raw.githubusercontent.com/IngenieroRicardo/DB/refs/heads/main/DB.h` | `Invoke-WebRequest https://raw.githubusercontent.com/IngenieroRicardo/DB/refs/heads/main/DB.h -OutFile ./DB.h` |
+| `wget https://github.com/IngenieroRicardo/DB/releases/download/1.0/DB.so` | `Invoke-WebRequest https://github.com/IngenieroRicardo/DB/releases/download/1.0/DB.dll -OutFile ./DB.dll` |
+| `wget https://github.com/IngenieroRicardo/DB/releases/download/1.0/DB.h` | `Invoke-WebRequest https://github.com/IngenieroRicardo/DB/releases/download/1.0/DB.h -OutFile ./DB.h` |
 
 ---
 
