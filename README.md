@@ -2,7 +2,7 @@
 
 Librería en C para realizar consultas a bases de datos MariaDB/MySQL, SQLServer, SQLite3, PostgreSQL y Oracle para obtener los resultados en formato JSON.  
 Esta librería está basada en el proyecto original: https://gitlab.com/RicardoValladares/api-mysql.git  
-Fue recompilada usando el siguiente comando: go build -o DB.dll -buildmode=c-shared DB.go
+Fue recompilada usando el siguiente comando: `go build -o DB.dll -buildmode=c-shared DB.go`
 
 ---
 
