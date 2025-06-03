@@ -31,10 +31,10 @@ Fue recompilada usando el siguiente comando: go build -o DB.dll -buildmode=c-sha
 #include "DB.h"
 
 int main() {
-    char* diver = "mysql";
-    char* conexion = "root:123456@tcp(127.0.0.1:3306)/test";
-    char* query = "SELECT now();"; //Construcción de JSON desde Result
-    //char* query = "SELECT '{\"status\": \"OK\"}' AS JSON"; //Construcción de JSON desde Query
+    char* diver = "sqlite3";
+    char* conexion = "./sqlite3.db";
+    //char* query = "SELECT now();"; //Construcción de JSON desde Result
+    char* query = "SELECT '{\"status\": \"OK\"}' AS JSON"; //Construcción de JSON desde Query
     
     SQLResult resultado = SQLrun(diver, conexion, query, NULL, 0);
     
