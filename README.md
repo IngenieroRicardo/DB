@@ -34,6 +34,7 @@ int main() {
     char* diver = "sqlite3";
     char* conexion = "./sqlite3.db";
     char* query = "SELECT '{\"status\": \"OK\"}' AS JSON"; //Construcción de JSON desde Query
+    //char* query = "SELECT datetime('now') AS NOW;"; //Construcción de JSON desde Result
 
     /*
     char* diver = "postgres";
