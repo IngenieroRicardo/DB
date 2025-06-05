@@ -89,14 +89,8 @@ int main() {
     // Parámetro de tipo blob (imagen codificada en base64)
     argumentos_insert[1] = "blob::iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAArSURBVBhXY/iPA0AlGBgwGFAKlwQmAKrAIgcVRZODCsI5cAAVgVDo4P9/AHe4m2U/OJCWAAAAAElFTkSuQmCC";
     
-    // Convertir a un arreglo de char** (necesario para la función SQLrun)
-    char** ptr_argumentos_insert = (char**)malloc(2 * sizeof(char*));
-    for (int i = 0; i < 2; i++) {
-        ptr_argumentos_insert[i] = strdup(argumentos_insert[i]); // Copiar cada argumento
-    }
-    
     // Ejecutar la consulta INSERT
-    SQLResult resultado_insert = SQLrun(diver, conexion, consulta_insert, ptr_argumentos_insert, 2);
+    SQLResult resultado_insert = SQLrun(diver, conexion, consulta_insert, argumentos_insert, 2);
     
     // Mostrar los resultados
     printf("Resultado del INSERT:\n");
@@ -109,9 +103,8 @@ int main() {
     
     // Liberar los argumentos copiados
     for (int i = 0; i < 2; i++) {
-        free(ptr_argumentos_insert[i]);
+        free(argumentos_insert[i]);
     }
-    free(ptr_argumentos_insert); // Liberar el arreglo de argumentos
     
     return 0;
 }
