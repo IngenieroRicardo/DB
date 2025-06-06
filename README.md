@@ -2,7 +2,7 @@
 
 Librería en C para realizar consultas a bases de datos MariaDB/MySQL, SQLServer, SQLite3, PostgreSQL y Oracle para obtener los resultados en formato JSON.  
 Esta librería está basada en el proyecto original: https://gitlab.com/RicardoValladares/api-mysql.git  
-Fue recompilada usando el siguiente comando: `go build -o DB.dll -buildmode=c-shared DB.go`
+Fue recompilada usando el siguiente comando: `go build -o db.dll -buildmode=c-shared db.go`
 
 ---
 
@@ -10,8 +10,8 @@ Fue recompilada usando el siguiente comando: `go build -o DB.dll -buildmode=c-sh
 
 | Linux | Windows |
 | --- | --- |
-| `wget https://github.com/IngenieroRicardo/DB/releases/download/1.0/DB.so` | `Invoke-WebRequest https://github.com/IngenieroRicardo/DB/releases/download/1.0/DB.dll -OutFile ./DB.dll` |
-| `wget https://github.com/IngenieroRicardo/DB/releases/download/1.0/DB.h` | `Invoke-WebRequest https://github.com/IngenieroRicardo/DB/releases/download/1.0/DB.h -OutFile ./DB.h` |
+| `wget https://github.com/IngenieroRicardo/db/releases/download/1.0/db.so` | `Invoke-WebRequest https://github.com/IngenieroRicardo/db/releases/download/1.0/db.dll -OutFile ./db.dll` |
+| `wget https://github.com/IngenieroRicardo/db/releases/download/1.0/db.h` | `Invoke-WebRequest https://github.com/IngenieroRicardo/db/releases/download/1.0/db.h -OutFile ./db.h` |
 
 ---
 
@@ -19,8 +19,8 @@ Fue recompilada usando el siguiente comando: `go build -o DB.dll -buildmode=c-sh
 
 | Linux | Windows |
 | --- | --- |
-| `gcc -o main.bin main.c ./DB.so` | `gcc -o main.exe main.c ./DB.dll` |
-| `x86_64-w64-mingw32-gcc -o main.exe main.c ./DB.dll` |  |
+| `gcc -o main.bin main.c ./db.so` | `gcc -o main.exe main.c ./db.dll` |
+| `x86_64-w64-mingw32-gcc -o main.exe main.c ./db.dll` |  |
 
 ---
 
@@ -28,7 +28,7 @@ Fue recompilada usando el siguiente comando: `go build -o DB.dll -buildmode=c-sh
 
 ```C
 #include <stdio.h>
-#include "DB.h"
+#include "db.h"
 
 int main() {
     char* diver = "sqlite3";
@@ -74,7 +74,7 @@ int main() {
 
 ```C
 #include <stdio.h>
-#include "DB.h"
+#include "db.h"
 
 int main() {
     char* diver = "mysql";
