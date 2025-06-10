@@ -17,12 +17,12 @@ import (
     "unsafe"
 	"strconv"
 	"strings"
-    STRC "DB/STRUCTURES"
-    LDB "DB/LDB"
-    MDB "DB/MDB"
-    PDB "DB/PDB"
-    SDB "DB/SDB"
-    ODB "DB/ODB"
+    STRC "github.com/IngenieroRicardo/db/STRUCTURES"
+    LDB "github.com/IngenieroRicardo/db/LDB"
+    MDB "github.com/IngenieroRicardo/db/MDB"
+    PDB "github.com/IngenieroRicardo/db/PDB"
+    SDB "github.com/IngenieroRicardo/db/SDB"
+    ODB "github.com/IngenieroRicardo/db/ODB"
 )
 
 //export SQLrun
