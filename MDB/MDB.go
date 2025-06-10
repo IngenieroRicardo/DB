@@ -1,16 +1,5 @@
 package MDB
 
-/*
-#include <stdlib.h>
-#include <string.h>
-
-typedef struct {
-    char* json;
-    int is_error;    // 1 si es error, 0 si es éxito
-    int is_empty;    // 1 si está vacío, 0 si tiene datos
-} SQLResult;
-*/
-import "C"
 import (
 	"database/sql"
 	"encoding/base64"
@@ -19,7 +8,7 @@ import (
 	"strings"
 	"bytes"
 	_ "github.com/go-sql-driver/mysql"
-    STRC "DB/STRUCTURES"
+    STRC "github.com/IngenieroRicardo/db/STRUCTURES"
 )
 
 func SqlRunInternal(driver, conexion, query string, args ...any) STRC.InternalResult {

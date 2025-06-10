@@ -1,4 +1,4 @@
-module DB
+module github.com/IngenieroRicardo/db
 
 go 1.24.1
 
