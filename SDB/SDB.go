@@ -164,42 +164,31 @@ func SqlRunInternal(driver, conexion, query string, args ...any) STRC.InternalRe
     }
 
     // Construimos la respuesta final
-    switch {
-    case resultSetCount == 0:
-        if isNonReturningQuery(query) {
-            return STRC.InternalResult{
-                Json:     createSuccessJSON(),
-                Is_error: 0,
-                Is_empty: 1,
-            }
-        }
-        return STRC.InternalResult{
-            Json:     "[]",
-            Is_error: 0,
-            Is_empty: 1,
-        }
-
-    case resultSetCount == 1:
-        if isNonReturningQuery(query) {
-            return STRC.InternalResult{
-                Json:     createSuccessJSON(),
-                Is_error: 0,
-                Is_empty: 1,
-            }
-        }
-        return STRC.InternalResult{
-            Json:     resultsets[0],
-            Is_error: 0,
-            Is_empty: 0,
-        }
-
-    default:
+    if len(resultsets)>1 {
         // Para múltiples resultsets, los combinamos en un array JSON
         combined := "[" + strings.Join(resultsets, ",") + "]"
         return STRC.InternalResult{
             Json:     combined,
             Is_error: 0,
             Is_empty: 0,
+        }
+    } else if strings.Contains(resultsets[0], ":"){
+        return STRC.InternalResult{
+            Json:     resultsets[0],
+            Is_error: 0,
+            Is_empty: 0,
+        }
+    } else if isNonReturningQuery(query) {
+        return STRC.InternalResult{
+            Json:     createSuccessJSON(),
+            Is_error: 0,
+            Is_empty: 1,
+        }
+    } else {
+        return STRC.InternalResult{
+            Json:     "[]",
+            Is_error: 0,
+            Is_empty: 1,
         }
     }
 }
