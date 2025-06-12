@@ -3,12 +3,57 @@ package main
 /*
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 typedef struct {
     char* json;
-    int is_error;    // 1 si es error, 0 si es éxito
-    int is_empty;    // 1 si está vacío, 0 si tiene datos
-} SQLResult;*/
+    int is_error; // 1 si es error, 0 si es éxito
+    int is_empty; // 1 si está vacío, 0 si tiene datos
+} SQLResult;
+
+// Declaración de función Go (debe estar exportada en Go)
+extern SQLResult SQLrunner(char* driver, char* conexion, char* query, char** args, int argCount);
+
+static SQLResult SQLrun(char* driver, char* conexion, char* query, ...) {
+    va_list args;
+    va_start(args, query);
+
+    // Contar argumentos (se espera terminados en NULL)
+    int argCount = 0;
+    while (va_arg(args, char*) != NULL) {
+        argCount++;
+    }
+    va_end(args);
+
+    // Si no hay argumentos, igual se llama con NULL y 0
+    if (argCount == 0) {
+        return SQLrunner(driver, conexion, query, NULL, 0);
+    }
+
+    // Alocar espacio para los argumentos
+    char** argsArray = (char**)malloc(argCount * sizeof(char*));
+    if (argsArray == NULL) {
+        SQLResult errResult;
+        errResult.json = strdup("{\"error\":\"Memory allocation failed\"}");
+        errResult.is_error = 1;
+        errResult.is_empty = 1;
+        return errResult;
+    }
+
+    // Recolectar los argumentos nuevamente
+    va_start(args, query);
+    for (int i = 0; i < argCount; i++) {
+        argsArray[i] = va_arg(args, char*);
+    }
+    va_end(args);
+
+    // Llamar a la función Go exportada
+    SQLResult resultado = SQLrunner(driver, conexion, query, argsArray, argCount);
+
+    free(argsArray);
+    return resultado;
+}
+*/
 import "C"
 import (
 	"encoding/base64"
@@ -25,8 +70,8 @@ import (
     ODB "github.com/IngenieroRicardo/db/ODB"
 )
 
-//export SQLrun
-func SQLrun(driver *C.char, conexion *C.char, query *C.char, args **C.char, argCount C.int) C.SQLResult {
+//export SQLrunner
+func SQLrunner(driver *C.char, conexion *C.char, query *C.char, args **C.char, argCount C.int) C.SQLResult {
     goDriver := C.GoString(driver)
 	goConexion := C.GoString(conexion)
 	goQuery := C.GoString(query)
