@@ -84,13 +84,12 @@ int main() {
     char* consulta_insert = "INSERT INTO chat.usuario(nickname, picture) VALUES (?, ?);";
     
     // Preparar los argumentos para el INSERT
-    char* argumentos_insert[2];
-    argumentos_insert[0] = "Ricardo";  // Parámetro de tipo cadena (nickname)
+    char* argumentos_inser1 = "Ricardo";  // Parámetro de tipo cadena (nickname)
     // Parámetro de tipo blob (imagen codificada en base64)
-    argumentos_insert[1] = "blob::iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAArSURBVBhXY/iPA0AlGBgwGFAKlwQmAKrAIgcVRZODCsI5cAAVgVDo4P9/AHe4m2U/OJCWAAAAAElFTkSuQmCC";
+    char* argumentos_insert2 = "blob::iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAArSURBVBhXY/iPA0AlGBgwGFAKlwQmAKrAIgcVRZODCsI5cAAVgVDo4P9/AHe4m2U/OJCWAAAAAElFTkSuQmCC";
     
     // Ejecutar la consulta INSERT
-    SQLResult resultado_insert = SQLrun(diver, conexion, consulta_insert, argumentos_insert, 2);
+    SQLResult resultado_insert = SQLrun(diver, conexion, consulta_insert, argumentos_inser1, argumentos_inser2, NULL);
     
     // Mostrar los resultados
     printf("Resultado del INSERT:\n");
