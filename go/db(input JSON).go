@@ -31,12 +31,26 @@ type InternalResult struct {
 
 
 // SQLrun ejecuta consultas SQL con parámetros
-func SQLrun(driver string, conexion string, query string, args ...string) InternalResult {
+func SQLrun(driver string, conexion string, query string, args ...any) InternalResult {
 	// Convertir args a un solo string JSON
 	jsonStr := ""
-	if len(args) > 0 {
+	/*if len(args) > 0 {
 		jsonStr = args[0]
-	}
+	}*/
+
+
+
+
+/*----------------------------------------------------------------- OJO AQUI -----------------------------------------------------------------*/
+if len(args) == 1 {
+    if str, ok := args[0].(string); ok { // Extrae el valor y verifica el tipo
+        jsonStr = str // Asigna el string ya convertido
+    }
+}
+/*----------------------------------------------------------------- OJO AQUI -----------------------------------------------------------------*/
+
+
+
 
 	result, err := runSQLInternal(driver, conexion, query, jsonStr)
 	if err != nil {
