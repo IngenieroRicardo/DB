@@ -163,10 +163,6 @@ func parseQuery(query string) (string, []string, []string, error) {
             regexp.MustCompile(`(?i)^select\s+([a-z0-9_]+)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`),
             "select_function",
         },
-        {
-            regexp.MustCompile(`(?i)^select\s+([a-z0-9_]+)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)\s+as\s+([a-z0-9_]+)$`),
-            "select_function_alias",
-        },
     }
 
     for _, pattern := range patterns {
