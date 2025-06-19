@@ -50,7 +50,7 @@ int main() {
     char* conexion = "user="system" password="Prueba123456" connectString="localhost:1521/XE";
     */
     
-    SQLResult resultado = SQLrun(diver, conexion, query, NULL, 0);
+    SQLResult resultado = SQLrun(diver, conexion, query, NULL);
     
     if (resultado.is_error) {
         printf("Error: %s\n", resultado.json);
@@ -121,7 +121,7 @@ int main() {
     char* json = "{ \"id\": 6, \"tipo\": \"midi\" }"; //Tambien acepta arreglos
     //char* json = "[{ \"id\": 7, \"tipo\": \"MP4\" },{ \"id\": 8, \"tipo\": \"vinilo\" }]";
 
-    SQLResult resultado = SQLrun(diver, conexion, query, json, 0);
+    SQLResult resultado = SQLrun(diver, conexion, query, json, NULL);
     
     if (resultado.is_error) {
         printf("Error: %s\n", resultado.json);
