@@ -14,67 +14,29 @@ import (
 )
 
 func SqlRunInternal(driver, conexion, query string, args ...any) STRC.InternalResult {
+	
+	
+	if len(args) == 1 { //solo un argumento
+	    if sjson, ok := args[0].(string); ok { //ese argumento debe ser string
 
-	if len(args) == 1 {
-	    if sjson, ok := args[0].(string); ok { 
-	    	if regexp.MustCompile(`(?i)^call\s+([a-z0-9_]+)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`).MatchString(query) {
+			//validamos la query pida contenga como input: json[col1,col2,blob(col3),etc..]
+			if regexp.MustCompile(`(?i)\(JSON\[([a-z0-9_,BLOB()\s]+)\]`).MatchString(query) {
 
-	    		if isJSON(sjson) {
-	    			return sqlruninternalwithJSON(driver, conexion, query, sjson)
-	    		} else {
-
-	    			return STRC.InternalResult{
-   			            Json:     createErrorJSON("El query esperaba un JSON valido"),
-   			            Is_error: 1,
-   			            Is_empty: 0,
-   			        }
-   			        
-	    		}
-	    	    
-	    	} else if regexp.MustCompile(`(?i)^insert\s+into\s+([a-z0-9_.]+)\s*\(([a-z0-9_,\sBLOB()]+)\)\s*values\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`).MatchString(query) {
-
-	    	    if isJSON(sjson) {
+			    if isJSON(sjson) { // validamos el unico argumento string sea un json valido
    	    			return sqlruninternalwithJSON(driver, conexion, query, sjson)
    	    		} else {
-
-	    			return STRC.InternalResult{
-   			            Json:     createErrorJSON("El query esperaba un JSON valido"),
-   			            Is_error: 1,
-   			            Is_empty: 0,
-   			        }
-   			        
-	    		}
-   	    		
-	    	} else if regexp.MustCompile(`(?i)^insert\s+into\s+([a-z0-9_.]+)\s*values\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`).MatchString(query) {
-
-	    	    if isJSON(sjson) {
-   	    			return sqlruninternalwithJSON(driver, conexion, query, sjson)
-   	    		} else {
-
-	    			return STRC.InternalResult{
-   			            Json:     createErrorJSON("El query esperaba un JSON valido"),
-   			            Is_error: 1,
-   			            Is_empty: 0,
-   			        }
-   			        
-	    		}
-   	    		
-	    	} else if regexp.MustCompile(`(?i)^select\s+([a-z0-9_]+)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`).MatchString(query) {
-	    	    if isJSON(sjson) {
-   	    			return sqlruninternalwithJSON(driver, conexion, query, sjson)
-   	    		} else {
-
-	    			return STRC.InternalResult{
-   			            Json:     createErrorJSON("El query esperaba un JSON valido"),
-   			            Is_error: 1,
-   			            Is_empty: 0,
-   			        }
-   			        
-	    		}
-	    	} 	
+   	    			return STRC.InternalResult{
+      			            Json:     createErrorJSON("El query esperaba un JSON valido"),
+      			            Is_error: 1,
+      			            Is_empty: 0,
+      			    }
+      			        
+   	    		}
+			} 	
 	    }
 	}
-
+	
+	
     db, err := sql.Open(driver, conexion)
     if err != nil {
         return STRC.InternalResult{
