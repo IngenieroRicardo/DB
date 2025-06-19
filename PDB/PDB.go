@@ -268,7 +268,16 @@ func sqlruninternalwithJSON(driver, conexion, query, jsonStr string) STRC.Intern
         }
     }
 
-    resultJson, err := json.Marshal(result)
+    if len(result) == 0 {
+        return STRC.InternalResult{
+            Json:     `{"message":"no data found"}`,
+            Is_error: 0,
+            Is_empty: 1,
+        }
+    }
+
+    firstItem := result[0]
+    firstItemJson, err := json.Marshal(firstItem)
     if err != nil {
         errorJson, _ := json.Marshal(STRC.ErrorResponse{Error: err.Error()})
         return STRC.InternalResult{
@@ -279,7 +288,7 @@ func sqlruninternalwithJSON(driver, conexion, query, jsonStr string) STRC.Intern
     }
 
     return STRC.InternalResult{
-        Json:     string(resultJson),
+        Json:     string(firstItemJson),
         Is_error: 0,
         Is_empty: 0,
     }
