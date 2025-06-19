@@ -104,6 +104,41 @@ int main() {
 }
 ```
 
+---
+
+### 🧪 Ejemplo con parámetros JSON
+
+```C
+#include <stdio.h>
+#include "db.h"
+
+int main() {
+    char* diver = "sqlite3";
+    char* conexion = "./sqlite3.db";
+    //si quiere parsear un campo string del json puedes hacer algo como esto: (JSON[id,BLOB(foto))])
+    char* query = "INSERT INTO MediaType(MediaTypeId, Name) VALUES(JSON[id,tipo])";
+   
+    char* json = "{ \"id\": 6, \"tipo\": \"midi\" }"; //Tambien acepta arreglos
+    //char* json = "[{ \"id\": 7, \"tipo\": \"MP4\" },{ \"id\": 8, \"tipo\": \"vinilo\" }]";
+
+    SQLResult resultado = SQLrun(diver, conexion, query, json, 0);
+    
+    if (resultado.is_error) {
+        printf("Error: %s\n", resultado.json);
+    } else if (resultado.is_empty) {
+        printf("Consulta ejecutada pero no retornó datos\n");
+        printf("JSON: %s\n", resultado.json);
+    } else {
+        printf("Datos obtenidos:\n%s\n", resultado.json);
+    }
+    
+    // Liberar memoria
+    FreeSQLResult(resultado);
+    
+    return 0;
+}
+```
+
 
 
 📝 Los tipos de datos soportados en los argumentos son:
