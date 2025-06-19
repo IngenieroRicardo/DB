@@ -19,7 +19,7 @@ func SqlRunInternal(driver, conexion, query string, args ...any) STRC.InternalRe
 	if len(args) == 1 { //solo un argumento
 	    if sjson, ok := args[0].(string); ok { //ese argumento debe ser string
 
-			//validamos la query pida contenga como input: json[col1,col2,blob(col3),etc..]
+			//validamos la query pida como input: json[col1,col2,blob(col3),etc..]
 			if regexp.MustCompile(`(?i)\(JSON\[([a-z0-9_,BLOB()\s]+)\]`).MatchString(query) {
 
 			    if isJSON(sjson) { // validamos el unico argumento string sea un json valido
@@ -263,14 +263,6 @@ func sqlruninternalwithJSON(driver, conexion, query, jsonStr string) STRC.Intern
 			Json:     string(errorJson),
 			Is_error: 1,
 			Is_empty: 0,
-		}
-	}
-
-	if len(result) == 0 {
-		return STRC.InternalResult{
-			Json:     `{"status":"success"}`,
-			Is_error: 0,
-			Is_empty: 1,
 		}
 	}
 
