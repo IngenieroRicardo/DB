@@ -13,6 +13,17 @@ import (
     "errors"
 )
 
+var (
+	jsonRegex = regexp.MustCompile(`(?i)\(JSON\[([a-z0-9_,BLOB()\s]+)\]`)
+	blobPattern = regexp.MustCompile(`(?i)BLOB\(([a-z0-9_]+)\)`)
+	
+	callPattern = regexp.MustCompile(`(?i)^call\s+([a-z0-9_]+)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
+	insertcPattern = regexp.MustCompile(`(?i)^insert\s+into\s+([a-z0-9_.]+)\s*\(([a-z0-9_,\sBLOB()]+)\)\s*values\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
+	insertPattern = regexp.MustCompile(`(?i)^insert\s+into\s+([a-z0-9_.]+)\s*values\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
+	selectPattern = regexp.MustCompile(`(?i)^select\s+([a-z0-9_]+)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
+)
+
+
 // OpenConnection opens a new database connection
 func OpenConnection(driver, conexion string) (*sql.DB, error) {
     db, err := sql.Open(driver, conexion)
@@ -207,8 +218,9 @@ func SqlRunInternal(driver, conexion, query string, args ...any) STRC.InternalRe
 	if len(args) == 1 { //solo un argumento
 	    if sjson, ok := args[0].(string); ok { //ese argumento debe ser string
 
+		    	
 			//validamos la query pida como input: json[col1,col2,blob(col3),etc..]
-			if regexp.MustCompile(`(?i)\(JSON\[([a-z0-9_,BLOB()\s]+)\]`).MatchString(query) {
+			if jsonRegex.MatchString(query) {
 
 			    if isJSON(sjson) { // validamos el unico argumento string sea un json valido
    	    			return sqlruninternalwithJSON(driver, conexion, query, sjson)
@@ -531,26 +543,26 @@ func parseQuery(query string) (string, []string, []string, error) {
     normalizedQuery := strings.TrimSpace(strings.TrimSuffix(query, ";"))
     
     // Nuevo patrón para detectar parámetros BLOB
-    blobPattern := regexp.MustCompile(`(?i)BLOB\(([a-z0-9_]+)\)`)
+    //blobPattern := regexp.MustCompile(`(?i)BLOB\(([a-z0-9_]+)\)`)
     
     patterns := []struct {
         regex     *regexp.Regexp
         queryType string
     }{
         {
-            regexp.MustCompile(`(?i)^call\s+([a-z0-9_]+)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`),
+            callPattern,
             "call",
         },
         {
-            regexp.MustCompile(`(?i)^insert\s+into\s+([a-z0-9_.]+)\s*\(([a-z0-9_,\sBLOB()]+)\)\s*values\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`),
+            insertcPattern,
             "insert_with_columns",
         },
         {
-            regexp.MustCompile(`(?i)^insert\s+into\s+([a-z0-9_.]+)\s*values\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`),
+            insertPattern,
             "insert_without_columns",
         },
         {
-            regexp.MustCompile(`(?i)^select\s+([a-z0-9_]+)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`),
+            selectPattern,
             "select_function",
         },
     }
