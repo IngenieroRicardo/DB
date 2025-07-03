@@ -8,19 +8,19 @@ import (
 	"strings"
 	"bytes"
 	_ "github.com/mattn/go-sqlite3"
-    STRC "github.com/IngenieroRicardo/db/STRUCTURES"
-    "regexp"
-    "errors"
+	STRC "github.com/IngenieroRicardo/db/STRUCTURES"
+	"regexp"
+	"errors"
 )
 
 var (
 	jsonRegex = regexp.MustCompile(`(?i)\(JSON\[([a-z0-9_,BLOB()\s]+)\]`)
 	blobPattern = regexp.MustCompile(`(?i)BLOB\(([a-z0-9_]+)\)`)
 	
-	callPattern = regexp.MustCompile(`(?i)^call\s+([a-z0-9_]+)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
-	insertcPattern = regexp.MustCompile(`(?i)^insert\s+into\s+([a-z0-9_.]+)\s*\(([a-z0-9_,\sBLOB()]+)\)\s*values\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
-	insertPattern = regexp.MustCompile(`(?i)^insert\s+into\s+([a-z0-9_.]+)\s*values\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
-	selectPattern = regexp.MustCompile(`(?i)^select\s+([a-z0-9_]+)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
+	callPattern = regexp.MustCompile(`(?i)^call\s+([a-z0-9_]+(?:\.[a-z0-9_]+)?)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
+	insertcPattern = regexp.MustCompile(`(?i)^insert\s+into\s+([a-z0-9_.]+(?:\.[a-z0-9_]+)?)\s*\(([a-z0-9_,\sBLOB()]+)\)\s*values\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
+	insertPattern = regexp.MustCompile(`(?i)^insert\s+into\s+([a-z0-9_.]+(?:\.[a-z0-9_]+)?)\s*values\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
+	selectPattern = regexp.MustCompile(`(?i)^select\s+([a-z0-9_]+(?:\.[a-z0-9_]+)?)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
 )
 
 // OpenConnection opens a new database connection
