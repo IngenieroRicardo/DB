@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-    STRC "github.com/IngenieroRicardo/db/STRUCTURES"
-    LDB "github.com/IngenieroRicardo/db/LDB"
-    MDB "github.com/IngenieroRicardo/db/MDB"
-    PDB "github.com/IngenieroRicardo/db/PDB"
-    SDB "github.com/IngenieroRicardo/db/SDB"
-    ODB "github.com/IngenieroRicardo/db/ODB"
-    "database/sql"
-    "sync"
+	STRC "github.com/IngenieroRicardo/db/STRUCTURES"
+	LDB "github.com/IngenieroRicardo/db/LDB"
+	MDB "github.com/IngenieroRicardo/db/MDB"
+	PDB "github.com/IngenieroRicardo/db/PDB"
+	SDB "github.com/IngenieroRicardo/db/SDB"
+	ODB "github.com/IngenieroRicardo/db/ODB"
+	"database/sql"
+	"sync"
 )
 
 // Connector represents a database connection
