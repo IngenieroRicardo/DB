@@ -20,7 +20,7 @@ import (
 type Connector struct {
     db      *sql.DB
     driver  string
-    mu      sync.Mutex
+    //mu      sync.Mutex
 }
 
 // connectionPool stores active connections
@@ -32,12 +32,25 @@ var connectionPool = struct {
 }
 
 // LoadSQL creates or returns an existing connection
-func LoadSQL(driver string, conexion string) (*Connector, error) {
+//func LoadSQL(driver string, conexion string) (*Connector, error) {
+func LoadSQL(driver string, conexion string, maxOpenConns, maxIdleConns int, connMaxLifetime, connMaxIdleTime time.Duration) (*Connector, error) {
     connectionPool.Lock()
     defer connectionPool.Unlock()
     
     key := driver + ":" + conexion
     if conn, exists := connectionPool.connections[key]; exists {
+        if maxOpenConns > 0 {
+            conn.db.SetMaxOpenConns(maxOpenConns)
+        }
+        if maxIdleConns > 0 {
+            conn.db.SetMaxIdleConns(maxIdleConns)
+        }
+        if connMaxLifetime > 0 {
+            conn.db.SetConnMaxLifetime(connMaxLifetime)
+        }
+        if connMaxIdleTime > 0 {
+            conn.db.SetConnMaxIdleTime(connMaxIdleTime)
+        }
         return conn, nil
     }
     
@@ -60,6 +73,19 @@ func LoadSQL(driver string, conexion string) (*Connector, error) {
     if err != nil {
         return nil, err
     }
+
+    if maxOpenConns > 0 {
+        db.SetMaxOpenConns(maxOpenConns)
+    }
+    if maxIdleConns > 0 {
+        db.SetMaxIdleConns(maxIdleConns)
+    }
+    if connMaxLifetime > 0 {
+        db.SetConnMaxLifetime(connMaxLifetime)
+    }
+    if connMaxIdleTime > 0 {
+        db.SetConnMaxIdleTime(connMaxIdleTime)
+    }
     
     connector := &Connector{
         db:     db,
@@ -72,8 +98,8 @@ func LoadSQL(driver string, conexion string) (*Connector, error) {
 
 // SQLrunonLoad executes a query using a preloaded connection
 func SQLrunonLoad(connector *Connector, query string, args ...string) STRC.InternalResult {
-    connector.mu.Lock()
-    defer connector.mu.Unlock()
+    //connector.mu.Lock()
+    //defer connector.mu.Unlock()
     
     var goArgs []interface{}
     var result STRC.InternalResult
