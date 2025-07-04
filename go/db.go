@@ -14,6 +14,7 @@ import (
 	ODB "github.com/IngenieroRicardo/db/ODB"
 	"database/sql"
 	"sync"
+	"time"
 )
 
 // Connector represents a database connection
