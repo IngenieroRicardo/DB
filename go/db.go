@@ -17,14 +17,25 @@ import (
 	"time"
 )
 
-// Connector represents a database connection
+func createErrorJSON(message string) string {
+    errResp := struct {
+        Error string `json:"error"`
+    }{
+        Error: message,
+    }
+    jsonData, _ := json.Marshal(errResp)
+    return string(jsonData)
+}
+
+
+
+
+/* pool de conexiones */
 type Connector struct {
     db      *sql.DB
     driver  string
-    //mu      sync.Mutex
 }
 
-// connectionPool stores active connections
 var connectionPool = struct {
     sync.RWMutex
     connections map[string]*Connector
@@ -32,12 +43,9 @@ var connectionPool = struct {
     connections: make(map[string]*Connector),
 }
 
-// LoadSQL creates or returns an existing connection
-//func LoadSQL(driver string, conexion string) (*Connector, error) {
 func LoadSQL(driver string, conexion string, maxOpenConns, maxIdleConns int, connMaxLifetime, connMaxIdleTime time.Duration) (*Connector, error) {
     connectionPool.Lock()
-    defer connectionPool.Unlock()
-    
+    defer connectionPool.Unlock()    
     key := driver + ":" + conexion
     if conn, exists := connectionPool.connections[key]; exists {
         if maxOpenConns > 0 {
@@ -97,15 +105,10 @@ func LoadSQL(driver string, conexion string, maxOpenConns, maxIdleConns int, con
     return connector, nil
 }
 
-// SQLrunonLoad executes a query using a preloaded connection
 func SQLrunonLoad(connector *Connector, query string, args ...string) STRC.InternalResult {
-    //connector.mu.Lock()
-    //defer connector.mu.Unlock()
-    
     var goArgs []interface{}
     var result STRC.InternalResult
 
-    // Process each argument
     for _, arg := range args {
         switch {
         case strings.HasPrefix(arg, "int::"):
@@ -156,7 +159,6 @@ func SQLrunonLoad(connector *Connector, query string, args ...string) STRC.Inter
         }
     }
 
-    // Execute based on driver
     switch connector.driver {
     case "sqlite3":
         return LDB.SqlRunOnConn(connector.db, query, goArgs...)
@@ -171,33 +173,25 @@ func SQLrunonLoad(connector *Connector, query string, args ...string) STRC.Inter
     }
 }
 
-// CloseSQL closes a connection and removes it from the pool
 func CloseSQL(connector *Connector) error {
     connectionPool.Lock()
-    defer connectionPool.Unlock()
-    
-    // Find and remove from connection pool
+    defer connectionPool.Unlock()    
     for key, conn := range connectionPool.connections {
         if conn == connector {
             delete(connectionPool.connections, key)
             break
         }
     }
-    
     return connector.db.Close()
 }
 
 
 
 
-
-
-
+/* conexion singular */
 func SQLrun(driver string, conexion string, query string, args ...string) STRC.InternalResult {
 	var result STRC.InternalResult
 	var goArgs []interface{}
-
-	// Procesar cada argumento
 	for _, arg := range args {
 		switch {
 		case strings.HasPrefix(arg, "int::"):
@@ -247,8 +241,6 @@ func SQLrun(driver string, conexion string, query string, args ...string) STRC.I
 			goArgs = append(goArgs, arg)
 		}
 	}
-
-	// Ejecutar según el driver
 	switch driver {
 	case "sqlite3":
 		return LDB.SqlRunInternal(driver, conexion, query, goArgs...)
@@ -261,14 +253,4 @@ func SQLrun(driver string, conexion string, query string, args ...string) STRC.I
 	default:
 		return MDB.SqlRunInternal(driver, conexion, query, goArgs...)
 	}
-}
-
-func createErrorJSON(message string) string {
-    errResp := struct {
-        Error string `json:"error"`
-    }{
-        Error: message,
-    }
-    jsonData, _ := json.Marshal(errResp)
-    return string(jsonData)
 }
