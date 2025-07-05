@@ -23,24 +23,198 @@ var (
 	selectPattern = regexp.MustCompile(`(?i)^select\s+([a-z0-9_]+(?:\.[a-z0-9_]+)?)\s*\(JSON\[([a-z0-9_,BLOB()\s]+)\]\)$`)
 )
 
-// OpenConnection opens a new database connection
+func isBlobParam(param string, blobParams []string) bool {
+    for _, p := range blobParams {
+        if p == param {
+            return true
+        }
+    }
+    return false
+}
+
+func isJSON(jsonStr string) bool {
+    decoder := json.NewDecoder(bytes.NewReader([]byte(jsonStr)))
+    decoder.UseNumber()
+    var dummy interface{}
+    return decoder.Decode(&dummy) == nil
+}
+
+func validateParams(params []string, blobParams []string, jsonData map[string]interface{}) error {
+    for _, param := range params {
+        if _, exists := jsonData[param]; !exists {
+            return fmt.Errorf("parámetro faltante en JSON: '%s'", param)
+        }
+    }
+    return nil
+}
+
+func buildQuery(queryType string, params []string, blobParams []string, jsonData map[string]interface{}) (string, []interface{}) {
+    parts := strings.Split(queryType, ":")
+    qType := parts[0]
+    
+    args := make([]interface{}, len(params))
+    for i, param := range params {
+        if isBlobParam(param, blobParams) {
+            // Decodificar base64 a bytes para BLOB
+            if str, ok := jsonData[param].(string); ok {
+                decoded, err := base64.StdEncoding.DecodeString(str)
+                if err != nil {
+                    decoded = []byte(str) // Fallback a string sin decodificar
+                }
+                args[i] = decoded
+            } else {
+                args[i] = []byte{}
+            }
+        } else {
+            args[i] = jsonData[param]
+        }
+    }
+
+    placeholders := strings.Repeat("?,", len(params)-1) + "?"
+
+    switch qType {
+    case "call":
+        return fmt.Sprintf("CALL %s(%s)", parts[1], placeholders), args
+    case "insert_with_columns":
+        return fmt.Sprintf("INSERT INTO %s(%s) VALUES(%s)", parts[1], parts[2], placeholders), args
+    case "insert_without_columns":
+        return fmt.Sprintf("INSERT INTO %s VALUES(%s)", parts[1], placeholders), args
+    case "select_function":
+        return fmt.Sprintf("SELECT %s(%s)", parts[1], placeholders), args
+    case "select_function_alias":
+        return fmt.Sprintf("SELECT %s(%s) AS %s", parts[1], placeholders, parts[2]), args
+    default:
+        return "", nil
+    }
+}
+
+func parseQuery(query string) (string, []string, []string, error) {
+    normalizedQuery := strings.TrimSpace(strings.TrimSuffix(query, ";"))    
+    patterns := []struct {
+        regex     *regexp.Regexp
+        queryType string
+    }{
+        {
+            callPattern,
+            "call",
+        },
+        {
+            insertcPattern,
+            "insert_with_columns",
+        },
+        {
+            insertPattern,
+            "insert_without_columns",
+        },
+        {
+            selectPattern,
+            "select_function",
+        },
+    }
+
+    for _, pattern := range patterns {
+        matches := pattern.regex.FindStringSubmatch(normalizedQuery)
+        if len(matches) > 0 {
+            paramStr := matches[len(matches)-1]
+            
+            // Extraer parámetros BLOB primero
+            blobMatches := blobPattern.FindAllStringSubmatch(paramStr, -1)
+            blobParams := make([]string, 0)
+            for _, m := range blobMatches {
+                blobParams = append(blobParams, m[1])
+                // Eliminar los BLOB() de la cadena para procesar los parámetros normales
+                paramStr = strings.Replace(paramStr, m[0], m[1], 1)
+            }
+            
+            // Procesar parámetros normales
+            params := strings.Split(paramStr, ",")
+            for i := range params {
+                params[i] = strings.TrimSpace(params[i])
+            }
+            
+            switch pattern.queryType {
+            case "insert_with_columns":
+                columns := strings.Split(matches[2], ",")
+                for i := range columns {
+                    columns[i] = strings.TrimSpace(columns[i])
+                }
+                return fmt.Sprintf("%s:%s:%s", pattern.queryType, matches[1], strings.Join(columns, ",")), params, blobParams, nil
+                
+            case "select_function_alias":
+                return fmt.Sprintf("%s:%s:%s", pattern.queryType, matches[1], matches[3]), params, blobParams, nil
+                
+            default:
+                return fmt.Sprintf("%s:%s", pattern.queryType, matches[1]), params, blobParams, nil
+            }
+        }
+    }
+    return "", nil, nil, errors.New("formato de consulta no soportado")
+}
+
+func isNonReturningQuery(query string) bool {
+    queryUpper := strings.ToUpper(strings.TrimSpace(query))
+    return strings.HasPrefix(queryUpper, "INSERT ") ||
+        strings.HasPrefix(queryUpper, "UPDATE ") ||
+        strings.HasPrefix(queryUpper, "DELETE ") ||
+        strings.HasPrefix(queryUpper, "REPLACE ") ||
+        strings.HasPrefix(queryUpper, "DROP ") ||
+        strings.HasPrefix(queryUpper, "CREATE ") ||
+        strings.HasPrefix(queryUpper, "ALTER ") ||
+        strings.HasPrefix(queryUpper, "TRUNCATE ") ||
+        strings.HasPrefix(queryUpper, "CALL ")
+}
+
+func createErrorJSON(message string) string {
+    errResp := STRC.ErrorResponse{Error: message}
+    jsonData, _ := json.Marshal(errResp)
+    return string(jsonData)
+}
+
+func createSuccessJSON() string {
+    successResp := STRC.SuccessResponse{Status: "OK"}
+    jsonData, _ := json.Marshal(successResp)
+    return string(jsonData)
+}
+
+
+
+
+/* pool de conexiones */
 func OpenConnection(driver, conexion string) (*sql.DB, error) {
     db, err := sql.Open(driver, conexion)
     if err != nil {
         return nil, err
     }
-    
     err = db.Ping()
     if err != nil {
         db.Close()
         return nil, err
     }
-    
     return db, nil
 }
 
-// SqlRunOnConn executes a query on an existing connection
 func SqlRunOnConn(db *sql.DB, query string, args ...any) STRC.InternalResult {
+
+	if len(args) == 1 { //solo un argumento
+        if sjson, ok := args[0].(string); ok { //ese argumento debe ser string
+
+            //validamos la query pida como input: json[col1,col2,blob(col3),etc..]
+            if jsonRegex.MatchString(query) {
+
+                if isJSON(sjson) { // validamos el unico argumento string sea un json valido
+                    return sqlruninternalwithJSONandCon(db, query, sjson)
+                } else {
+                    return STRC.InternalResult{
+                            Json:     createErrorJSON("El query esperaba un JSON valido"),
+                            Is_error: 1,
+                            Is_empty: 0,
+                    }
+                        
+                }
+            }   
+        }
+    }
+	
 
     rows, err := db.Query(query, args...)
     if err != nil {
@@ -110,13 +284,11 @@ func SqlRunOnConn(db *sql.DB, query string, args ...any) STRC.InternalResult {
             }
 
             if hasJSONField {
-                // Si hay un campo JSON, usamos solo ese campo
                 rb := *(values[jsonFieldIndex].(*sql.RawBytes))
                 if rb == nil {
                     buf.WriteString("null")
                 } else {
                     jsonStr := string(rb)
-                    // Validamos que sea un JSON válido
                     if !json.Valid(rb) {
                         return STRC.InternalResult{
                             Json:     createErrorJSON("El campo JSON no contiene un JSON válido"),
@@ -127,7 +299,6 @@ func SqlRunOnConn(db *sql.DB, query string, args ...any) STRC.InternalResult {
                     buf.WriteString(jsonStr)
                 }
             } else {
-                // Comportamiento normal para todas las columnas
                 buf.WriteString("{")
                 for i := range values {
                     if i > 0 {
@@ -162,21 +333,17 @@ func SqlRunOnConn(db *sql.DB, query string, args ...any) STRC.InternalResult {
             }
         }
 
-        // Solo agregamos el resultset si tiene filas o es el primer resultset
         if rowCount > 0 || resultSetCount == 0 {
             resultsets = append(resultsets, buf.String())
             resultSetCount++
         }
 
-        // Pasamos al siguiente resultset si existe
         if !rows.NextResultSet() {
             break
         }
     }
 
-    // Construimos la respuesta final
     if len(resultsets)>1 {
-        // Para múltiples resultsets, los combinamos en un array JSON
         combined := "[" + strings.Join(resultsets, ",") + "]"
         return STRC.InternalResult{
             Json:     combined,
@@ -205,9 +372,84 @@ func SqlRunOnConn(db *sql.DB, query string, args ...any) STRC.InternalResult {
 
 }
 
+func sqlruninternalwithJSONandCon(db *sql.DB, query, jsonStr string) STRC.InternalResult {
+    result, err := runSQLInternalandCon(db, query, jsonStr)
+    if err != nil {
+        errorJson, _ := json.Marshal(STRC.ErrorResponse{Error: err.Error()})
+        return STRC.InternalResult{
+            Json:     string(errorJson),
+            Is_error: 1,
+            Is_empty: 0,
+        }
+    }
+
+    if len(result) == 0 {
+        return STRC.InternalResult{
+            Json:     `{"message":"no data found"}`,
+            Is_error: 0,
+            Is_empty: 1,
+        }
+    }
+
+    firstItem := result[0]
+    firstItemJson, err := json.Marshal(firstItem)
+    if err != nil {
+        errorJson, _ := json.Marshal(STRC.ErrorResponse{Error: err.Error()})
+        return STRC.InternalResult{
+            Json:     string(errorJson),
+            Is_error: 1,
+            Is_empty: 0,
+        }
+    }
+
+    return STRC.InternalResult{
+        Json:     string(firstItemJson),
+        Is_error: 0,
+        Is_empty: 0,
+    }
+}
+
+func runSQLInternalandCon(db *sql.DB, query string, jsonStr string) ([]map[string]interface{}, error) {
+    normalizedQuery := strings.TrimSpace(strings.TrimSuffix(query, ";"))
+    
+    queryType, params, blobParams, err := parseQuery(normalizedQuery)
+    if err != nil {
+        return nil, err
+    }
+
+    var jsonArray []map[string]interface{}
+    var jsonObject map[string]interface{}
+    
+    if strings.TrimSpace(jsonStr) != "" && strings.TrimSpace(jsonStr)[0] == '[' {
+        if err := json.Unmarshal([]byte(jsonStr), &jsonArray); err != nil {
+            return nil, fmt.Errorf("error al parsear JSON array: %v", err)
+        }
+        if len(jsonArray) == 0 {
+            return nil, errors.New("el array JSON está vacío")
+        }
+        if err := validateParams(params, blobParams, jsonArray[0]); err != nil {
+            return nil, err
+        }
+    } else if strings.TrimSpace(jsonStr) != "" {
+        if err := json.Unmarshal([]byte(jsonStr), &jsonObject); err != nil {
+            return nil, fmt.Errorf("error al parsear JSON: %v", err)
+        }
+        if err := validateParams(params, blobParams, jsonObject); err != nil {
+            return nil, err
+        }
+        jsonArray = []map[string]interface{}{jsonObject}
+    } else {
+        jsonArray = []map[string]interface{}{make(map[string]interface{})}
+    }
+
+    baseQuery, _ := buildQuery(queryType, params, blobParams, jsonArray[0])
+    
+    return executeBatchInsert(db, baseQuery, params, blobParams, jsonArray)
+}
 
 
 
+/* conexion singular */
 func SqlRunInternal(driver, conexion, query string, args ...any) STRC.InternalResult {
 
     if len(args) == 1 { //solo un argumento
@@ -274,7 +516,6 @@ func SqlRunInternal(driver, conexion, query string, args ...any) STRC.InternalRe
             }
         }
 
-        // Verificar si hay un campo llamado "JSON" (case insensitive)
         hasJSONField := false
         jsonFieldIndex := -1
         for i, col := range columns {
@@ -319,13 +560,11 @@ func SqlRunInternal(driver, conexion, query string, args ...any) STRC.InternalRe
             }
 
             if hasJSONField {
-                // Si hay un campo JSON, usamos solo ese campo
                 rb := *(values[jsonFieldIndex].(*sql.RawBytes))
                 if rb == nil {
                     buf.WriteString("null")
                 } else {
                     jsonStr := string(rb)
-                    // Validamos que sea un JSON válido
                     if !json.Valid(rb) {
                         return STRC.InternalResult{
                             Json:     createErrorJSON("El campo JSON no contiene un JSON válido"),
@@ -336,7 +575,6 @@ func SqlRunInternal(driver, conexion, query string, args ...any) STRC.InternalRe
                     buf.WriteString(jsonStr)
                 }
             } else {
-                // Comportamiento normal para todas las columnas
                 buf.WriteString("{")
                 for i := range values {
                     if i > 0 {
@@ -371,21 +609,17 @@ func SqlRunInternal(driver, conexion, query string, args ...any) STRC.InternalRe
             }
         }
 
-        // Solo agregamos el resultset si tiene filas o es el primer resultset
         if rowCount > 0 || resultSetCount == 0 {
             resultsets = append(resultsets, buf.String())
             resultSetCount++
         }
 
-        // Pasamos al siguiente resultset si existe
         if !rows.NextResultSet() {
             break
         }
     }
 
-    // Construimos la respuesta final
     if len(resultsets)>1 {
-        // Para múltiples resultsets, los combinamos en un array JSON
         combined := "[" + strings.Join(resultsets, ",") + "]"
         return STRC.InternalResult{
             Json:     combined,
@@ -412,45 +646,6 @@ func SqlRunInternal(driver, conexion, query string, args ...any) STRC.InternalRe
         }
     }
 }
-
-func isNonReturningQuery(query string) bool {
-    queryUpper := strings.ToUpper(strings.TrimSpace(query))
-    return strings.HasPrefix(queryUpper, "INSERT ") ||
-        strings.HasPrefix(queryUpper, "UPDATE ") ||
-        strings.HasPrefix(queryUpper, "DELETE ") ||
-        strings.HasPrefix(queryUpper, "REPLACE ") ||
-        strings.HasPrefix(queryUpper, "DROP ") ||
-        strings.HasPrefix(queryUpper, "CREATE ") ||
-        strings.HasPrefix(queryUpper, "ALTER ") ||
-        strings.HasPrefix(queryUpper, "TRUNCATE ") ||
-        strings.HasPrefix(queryUpper, "CALL ")
-}
-
-func createErrorJSON(message string) string {
-    errResp := STRC.ErrorResponse{Error: message}
-    jsonData, _ := json.Marshal(errResp)
-    return string(jsonData)
-}
-
-func createSuccessJSON() string {
-    successResp := STRC.SuccessResponse{Status: "OK"}
-    jsonData, _ := json.Marshal(successResp)
-    return string(jsonData)
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 func sqlruninternalwithJSON(driver, conexion, query, jsonStr string) STRC.InternalResult {
     result, err := runSQLInternal(driver, conexion, query, jsonStr)
@@ -489,7 +684,6 @@ func sqlruninternalwithJSON(driver, conexion, query, jsonStr string) STRC.Intern
     }
 }
 
-// Función interna que mantiene la lógica original
 func runSQLInternal(driver string, connection string, query string, jsonStr string) ([]map[string]interface{}, error) {
     normalizedQuery := strings.TrimSpace(strings.TrimSuffix(query, ";"))
     
@@ -520,7 +714,6 @@ func runSQLInternal(driver string, connection string, query string, jsonStr stri
         }
         jsonArray = []map[string]interface{}{jsonObject}
     } else {
-        // Si no hay JSON, creamos un array vacío con un objeto vacío
         jsonArray = []map[string]interface{}{make(map[string]interface{})}
     }
 
@@ -535,126 +728,11 @@ func runSQLInternal(driver string, connection string, query string, jsonStr stri
     return executeBatchInsert(db, baseQuery, params, blobParams, jsonArray)
 }
 
-// parseQuery identifica el tipo de consulta y extrae parámetros normales y BLOB
-func parseQuery(query string) (string, []string, []string, error) {
-    normalizedQuery := strings.TrimSpace(strings.TrimSuffix(query, ";"))
-    
-    // Nuevo patrón para detectar parámetros BLOB
-    //blobPattern := regexp.MustCompile(`(?i)BLOB\(([a-z0-9_]+)\)`)
-    
-    patterns := []struct {
-        regex     *regexp.Regexp
-        queryType string
-    }{
-        {
-            callPattern,
-            "call",
-        },
-        {
-            insertcPattern,
-            "insert_with_columns",
-        },
-        {
-            insertPattern,
-            "insert_without_columns",
-        },
-        {
-            selectPattern,
-            "select_function",
-        },
-    }
 
-    for _, pattern := range patterns {
-        matches := pattern.regex.FindStringSubmatch(normalizedQuery)
-        if len(matches) > 0 {
-            paramStr := matches[len(matches)-1]
-            
-            // Extraer parámetros BLOB primero
-            blobMatches := blobPattern.FindAllStringSubmatch(paramStr, -1)
-            blobParams := make([]string, 0)
-            for _, m := range blobMatches {
-                blobParams = append(blobParams, m[1])
-                // Eliminar los BLOB() de la cadena para procesar los parámetros normales
-                paramStr = strings.Replace(paramStr, m[0], m[1], 1)
-            }
-            
-            // Procesar parámetros normales
-            params := strings.Split(paramStr, ",")
-            for i := range params {
-                params[i] = strings.TrimSpace(params[i])
-            }
-            
-            switch pattern.queryType {
-            case "insert_with_columns":
-                columns := strings.Split(matches[2], ",")
-                for i := range columns {
-                    columns[i] = strings.TrimSpace(columns[i])
-                }
-                return fmt.Sprintf("%s:%s:%s", pattern.queryType, matches[1], strings.Join(columns, ",")), params, blobParams, nil
-                
-            case "select_function_alias":
-                return fmt.Sprintf("%s:%s:%s", pattern.queryType, matches[1], matches[3]), params, blobParams, nil
-                
-            default:
-                return fmt.Sprintf("%s:%s", pattern.queryType, matches[1]), params, blobParams, nil
-            }
-        }
-    }
 
-    return "", nil, nil, errors.New("formato de consulta no soportado")
-}
 
-// buildQuery construye la consulta SQL con placeholders
-func buildQuery(queryType string, params []string, blobParams []string, jsonData map[string]interface{}) (string, []interface{}) {
-    parts := strings.Split(queryType, ":")
-    qType := parts[0]
-    
-    args := make([]interface{}, len(params))
-    for i, param := range params {
-        if isBlobParam(param, blobParams) {
-            // Decodificar base64 a bytes para BLOB
-            if str, ok := jsonData[param].(string); ok {
-                decoded, err := base64.StdEncoding.DecodeString(str)
-                if err != nil {
-                    decoded = []byte(str) // Fallback a string sin decodificar
-                }
-                args[i] = decoded
-            } else {
-                args[i] = []byte{}
-            }
-        } else {
-            args[i] = jsonData[param]
-        }
-    }
 
-    placeholders := strings.Repeat("?,", len(params)-1) + "?"
-
-    switch qType {
-    case "call":
-        return fmt.Sprintf("CALL %s(%s)", parts[1], placeholders), args
-    case "insert_with_columns":
-        return fmt.Sprintf("INSERT INTO %s(%s) VALUES(%s)", parts[1], parts[2], placeholders), args
-    case "insert_without_columns":
-        return fmt.Sprintf("INSERT INTO %s VALUES(%s)", parts[1], placeholders), args
-    case "select_function":
-        return fmt.Sprintf("SELECT %s(%s)", parts[1], placeholders), args
-    case "select_function_alias":
-        return fmt.Sprintf("SELECT %s(%s) AS %s", parts[1], placeholders, parts[2]), args
-    default:
-        return "", nil
-    }
-}
-
-// validateParams valida que los parámetros existan en el JSON
-func validateParams(params []string, blobParams []string, jsonData map[string]interface{}) error {
-    for _, param := range params {
-        if _, exists := jsonData[param]; !exists {
-            return fmt.Errorf("parámetro faltante en JSON: '%s'", param)
-        }
-    }
-    return nil
-}
-
+/* conexion singular y pool de conexiones */
 func executeBatchInsert(db *sql.DB, baseQuery string, params []string, blobParams []string, jsonArray []map[string]interface{}) ([]map[string]interface{}, error) {
     tx, err := db.Begin()
     if err != nil {
@@ -675,7 +753,6 @@ func executeBatchInsert(db *sql.DB, baseQuery string, params []string, blobParam
         args := make([]interface{}, len(params))
         for j, param := range params {
             if isBlobParam(param, blobParams) {
-                // Manejo mejorado para BLOBs
                 val, exists := item[param]
                 if !exists || val == nil {
                     args[j] = nil
@@ -724,21 +801,4 @@ func executeBatchInsert(db *sql.DB, baseQuery string, params []string, blobParam
             "records_inserted": len(jsonArray),
         },
     }, nil
-}
-
-// Función auxiliar para verificar si un parámetro es BLOB
-func isBlobParam(param string, blobParams []string) bool {
-    for _, p := range blobParams {
-        if p == param {
-            return true
-        }
-    }
-    return false
-}
-
-func isJSON(jsonStr string) bool {
-    decoder := json.NewDecoder(bytes.NewReader([]byte(jsonStr)))
-    decoder.UseNumber()
-    var dummy interface{}
-    return decoder.Decode(&dummy) == nil
 }
